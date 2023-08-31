@@ -1,14 +1,16 @@
 # AlignDETR
 
-## Installation
+# Installation
 
-### Old
+## Old
 
 ```
 
 module load python/3.8.12-gcc-4.8.5-jbm
-module load cuda/11.1.0-gcc-4.8.5-67q
-module load gcc/9.3.0-gcc-4.8.5-bxl
+module load cuda/11.8
+module load gcc/9.4.0-gcc-4.8.5
+
+# @cli2
 
 cd ~/align_detr
 mkdir legacy
@@ -17,32 +19,154 @@ cd ~/align_detr/legacy
 python -m venv  ~/align_detr/legacy/py38
 source ~/align_detr/legacy/py38/bin/activate
 
-pip install --upgrade pip
+pip install --upgrade pip setuptools wheel
 pip install ipython
 
 # Option 1: install directly.
-pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 # Option 2: Download and then install.
-wget -P ~/data/ https://download.pytorch.org/whl/cu111/torch-1.9.0%2Bcu111-cp38-cp38-linux_x86_64.whl
-wget -P ~/data/ https://download.pytorch.org/whl/cu111/torchvision-0.10.0%2Bcu111-cp38-cp38-linux_x86_64.whl
+wget -P ~/data/ https://download.pytorch.org/whl/cu118/torch-2.0.1%2Bcu118-cp38-cp38-linux_x86_64.whl
+wget -P ~/data/ https://download.pytorch.org/whl/cu118/torchvision-0.15.2%2Bcu118-cp38-cp38-linux_x86_64.whl
 
-pip install ~/data/torch-1.9.0+cu111-cp38-cp38-linux_x86_64.whl
-pip install ~/data/torchvision-0.10.0+cu111-cp38-cp38-linux_x86_64.whl
+pip install ~/data/torch-2.0.1+cu118-cp38-cp38-linux_x86_64.whl
+pip install ~/data/torchvision-0.15.2+cu118-cp38-cp38-linux_x86_64.whl
 
 git clone https://github.com/IDEA-Research/detrex.git
-cd detrex
+# git clone https://gitee.com/jiongjiongli/detrex.git
+cd ~/align_detr/legacy/detrex
+# vi .gitmodules
+# url = https://gitee.com/jiongjiongli/detectron2.git
 git submodule init
 git submodule update
 
+pip install ninja
+
+cd ~/align_detr/legacy/detrex
 pip install -e detectron2
 pip install -e .
 
+cd ~/align_detr/legacy
+git clone https://github.com/FelixCaae/AlignDETR.git
+# git clone https://gitee.com/jiongjiongli/AlignDETR.git
+
+# detectron2
+pip install "fvcore>=0.1.5,<0.1.6" cloudpickle omegaconf>=2.1 pycocotools>=2.0.2 fairscale timm hydra-core>=1.1
+pip install cloudpickle
+pip install omegaconf>=2.1
+pip install pycocotools>=2.0.2
+pip install fairscale
+pip install timm
+pip install hydra-core>=1.1
+
+# detrex
+pip install wandb
+pip install scipy==1.7.3
+pip install einops
+pip install opencv-python-headless
+
+cd ~/align_detr/legacy/detrex
+cp -r configs detrex/config/
+
+
+cd ~/align_detr/legacy/detrex
+# vi detectron2/detectron2/data/transforms/transform.py
+# Line 46
+# interp=Image.LINEAR -> interp=Image.BILINEAR
+
+cd ~/align_detr/legacy/AlignDETR
+pip install -e .
 
 ```
 
 
 
-### New
+
+
+```python
+import torch
+from setuptools import find_packages, setup
+import get_detrex_configs, get_extensions
+
+with open("LICENSE", "r", encoding="utf-8") as f:
+	license = f.read()
+        
+setup(
+    name="detrex",
+    version="0.3.0",
+    author="International Digital Economy Academy",
+    url="https://github.com/rentainhe/detrex",
+    description="IDEA open source toolbox for transformer-based instance recognition tasks",
+    license=license,
+    packages=find_packages(
+        exclude=(
+            "configs",
+            "tests",
+        )
+    ),
+    package_data={"detrex.config": get_detrex_configs()},
+    ext_modules=get_extensions(),
+    cmdclass={"build_ext": torch.utils.cpp_extension.BuildExtension},
+)
+
+setup(
+    name='extension',
+    ext_modules=[
+        CppExtension(
+            name='extension',
+            sources=['extension.cpp'],
+            extra_compile_args=['-g']),
+    ],
+    cmdclass={
+        'build_ext': BuildExtension
+    })
+    
+```
+
+
+
+## New
+
+```
+module load python/3.8.12-gcc-4.8.5-jbm
+module load cuda/11.8
+module load gcc/9.4.0-gcc-4.8.5
+
+cd ~/align_detr
+mkdir new
+cd ~/align_detr/new
+
+python -m venv  ~/align_detr/new/align_py38
+
+source ~/align_detr/new/align_py38/bin/activate
+
+pip install --upgrade pip setuptools wheel
+pip install ipython
+
+# Option 1: install directly.
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# Option 2: Download and then install.
+wget -P ~/data/ https://download.pytorch.org/whl/cu118/torch-2.0.1%2Bcu118-cp38-cp38-linux_x86_64.whl
+wget -P ~/data/ https://download.pytorch.org/whl/cu118/torchvision-0.15.2%2Bcu118-cp38-cp38-linux_x86_64.whl
+
+pip install ~/data/torch-2.0.1+cu118-cp38-cp38-linux_x86_64.whl
+pip install ~/data/torchvision-0.15.2+cu118-cp38-cp38-linux_x86_64.whl
+
+pip install mmengine==0.8.4
+pip install mmcv==2.0.0 -f https://download.openmmlab.com/mmcv/dist/cu118/torch2.0/index.html
+
+cd ~/align_detr/new/mmdetection
+pip install -r requirements.txt
+
+cd ~/align_detr/new/mmdetection
+mkdir mmdet/.mim
+cp model-index.yml mmdet/.mim/
+cp -r configs mmdet/.mim/
+
+```
+
+
+
+## New-obsolete
 
 ```
 module load python/3.8.12-gcc-4.8.5-jbm
@@ -78,49 +202,23 @@ git clone -b align_detr https://gitee.com/jiongjiongli/mmdetection_dev.git mmdet
 cd ~/align_detr/new/mmdetection
 pip install -r requirements.txt
 
-```
-
-
-
-## Train
-
-### Launch
-
-#### Old
-
-```python
-python tools/train_net.py --config-file  projects/aligndetr/configs/aligndetr_k=2_r50_4scale_12ep.py --num-gpus 8
-
-python tools/train_net.py --config-file  projects/aligndetr/configs/aligndetr_k=2_r50_4scale_12ep.py dataloader.train.num_workers=2 dataloader.train.total_batch_size=2 train.log_period=1
-```
-
-
-
-#### New
-
-```
-module load python/3.8.12-gcc-4.8.5-jbm
-module load cuda/11.1.0-gcc-4.8.5-67q
-module load gcc/9.3.0-gcc-4.8.5-bxl
-
-source ~/align_detr/new/align_py38/bin/activate
-
 cd ~/align_detr/new/mmdetection
-# pip install -v -e .
-export PYTHONPATH=$PYTHONPATH:
-
-export CUDA_VISIBLE_DEVICES=-1
-
-python tools/train.py configs/align_detr/align_detr-4scale_r50_8xb2-12e_coco.py --cfg-options model.backbone.init_cfg=None
-
-
+mkdir mmdet/.mim
+cp model-index.yml mmdet/.mim/
+cp -r configs mmdet/.mim/
 ```
-
-
 
 
 
 # Prepare Data
+
+## Old
+
+```
+mkdir -p ~/align_detr/legacy/AlignDETR/datasets
+ln -s ~/data/lvis ~/align_detr/legacy/AlignDETR/datasets/coco
+
+```
 
 
 
@@ -133,6 +231,78 @@ ln -s ~/data/lvis ~/align_detr/new/mmdetection/data/coco
 ```
 
 
+
+
+
+# Train
+
+## Launch
+
+### Old
+
+```bash
+module load python/3.8.12-gcc-4.8.5-jbm
+module load cuda/11.8
+module load gcc/9.4.0-gcc-4.8.5
+
+source ~/align_detr/legacy/py38/bin/activate
+
+cd ~/align_detr/legacy/AlignDETR
+export PYTHONPATH=$PYTHONPATH:../detrex/detectron2:../detrex:
+
+python tools/train_net.py --config-file  projects/aligndetr/configs/aligndetr_k=2_r50_4scale_12ep.py --num-gpus 8
+
+python tools/train_net.py --config-file  projects/aligndetr/configs/aligndetr_k=2_r50_4scale_12ep.py dataloader.train.num_workers=2 dataloader.train.total_batch_size=2 train.log_period=1
+
+```
+
+
+
+### New
+
+```bash
+module load python/3.8.12-gcc-4.8.5-jbm
+module load cuda/11.1.0-gcc-4.8.5-67q
+module load gcc/9.3.0-gcc-4.8.5-bxl
+
+source ~/align_detr/new/align_py38/bin/activate
+
+cd ~/align_detr/new/mmdetection
+
+export CUDA_VISIBLE_DEVICES=-1
+
+python tools/train.py projects/AlignDETR/configs/align_detr-4scale_r50_8xb2-12e_coco.py --cfg-options model.backbone.init_cfg=None
+
+python tools/train.py configs/align_detr/align_detr-4scale_r50_8xb2-12e_coco.py --cfg-options model.backbone.init_cfg=None
+
+
+```
+
+
+
+# Test
+
+## Old
+
+```
+python tools/train_net.py --config-file  projects/aligndetr/configs/aligndetr_k=2_r50_4scale_12ep.py --num-gpus 8 --eval train.init_checkpoint=/path/to/checkpoint
+
+python tools/train_net.py --config-file  projects/aligndetr/configs/aligndetr_k=2_r50_4scale_12ep.py --eval-only train.init_checkpoint=~/data/pretrain_models/aligndetr_r50_multi_4scale_12ep.pth
+
+python tools/train_net.py --config-file  projects/aligndetr/configs/aligndetr_k=2_r50_4scale_12ep.py --eval train.init_checkpoint=/home/bingxing2/gpuuser194/data/pretrain_models/aligndetr_r50_multi_4scale_12ep.pth
+
+python tools/train_net.py --config-file  projects/aligndetr/configs/aligndetr_k=2_r50_4scale_12ep.py --eval train.init_checkpoint=$(realpath ~/data/pretrain_models/aligndetr_r50_multi_4scale_24ep.pth)
+
+
+```
+
+
+
+## New
+
+
+
+# Code
 
 ## train_net
 
